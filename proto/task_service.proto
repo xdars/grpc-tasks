@@ -1,0 +1,147 @@
+syntax = "proto3";
+
+package taskservice;
+option go_package = "github.com/you/grpc-tasks/gen/pb";
+
+import "google/protobuf/timestamp.proto";
+
+
+service AuthService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest)       returns (LoginResponse);
+}
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+}
+message RegisterResponse {
+  string user_id = 1;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+message LoginResponse {
+  string token = 1;   // JWT
+}
+
+// ─── Tasks ───────────────────────────────────────────────────────────────────
+
+service TaskService {
+  rpc CreateTask(CreateTaskRequest)   returns (Task);
+  rpc GetTask   (GetTaskRequest)      returns (Task);
+  rpc ListTasks (ListTasksRequest)    returns (ListTasksResponse);
+  rpc UpdateTask(UpdateTaskRequest)   returns (Task);
+  rpc DeleteTask(DeleteTaskRequest)   returns (DeleteTaskResponse);
+
+  // Intentionally panics; used to verify UnaryRecoveryInterceptor over gRPC.
+  rpc DebugPanic(DebugPanicRequest) returns (DebugPanicResponse);
+
+  rpc WatchTasks(WatchTasksRequest)   returns (stream TaskEvent);
+}
+
+message Task {
+  string   id          = 1;
+  string   user_id     = 2;
+  string   title       = 3;
+  string   description = 4;
+  TaskStatus status    = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_TODO        = 1;
+  TASK_STATUS_IN_PROGRESS = 2;
+  TASK_STATUS_DONE        = 3;
+}
+
+message CreateTaskRequest {
+  string title       = 1;
+  string description = 2;
+}
+message GetTaskRequest    { string id = 1; }
+message ListTasksRequest  {}
+message ListTasksResponse { repeated Task tasks = 1; }
+
+message UpdateTaskRequest {
+  string     id          = 1;
+  string     title       = 2;
+  string     description = 3;
+  TaskStatus status      = 4;
+}
+message DeleteTaskRequest  { string id = 1; }
+message DeleteTaskResponse { bool success = 1; }
+
+message DebugPanicRequest {}
+message DebugPanicResponse {}
+
+message WatchTasksRequest {}
+message TaskEvent {
+  enum EventType {
+    EVENT_TYPE_UNSPECIFIED = 0;
+    EVENT_TYPE_CREATED     = 1;
+    EVENT_TYPE_UPDATED     = 2;
+    EVENT_TYPE_DELETED     = 3;
+  }
+  EventType event_type = 1;
+  Task      task       = 2;
+}
+
+service PaymentService {
+  rpc CreatePayment(CreatePaymentRequest) returns (Payment);
+  rpc GetPayment(GetPaymentRequest)       returns (Payment);
+  rpc ProcessPayment(stream PaymentCommand) returns (stream PaymentEvent);
+}
+
+enum PaymentStatus {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_STATUS_PENDING     = 1;
+  PAYMENT_STATUS_PROCESSING  = 2;
+  PAYMENT_STATUS_SUCCESS     = 3;
+  PAYMENT_STATUS_FAILED      = 4;
+}
+
+enum PaymentType {
+  PAYMENT_TYPE_UNSPECIFIED = 0;
+  PAYMENT_TYPE_PREMIUM     = 1;
+  PAYMENT_TYPE_BONUS       = 2;
+}
+
+message Payment {
+  string        id         = 1;
+  string        user_id    = 2;
+  PaymentType   type       = 3;
+  PaymentStatus status     = 4;
+  int64         amount     = 5;
+  string        currency   = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message CreatePaymentRequest {
+  PaymentType type     = 1;
+  int64       amount   = 2;
+  string      currency = 3;
+}
+
+message GetPaymentRequest { string id = 1; }
+
+message PaymentCommand {
+  enum Action {
+    ACTION_UNSPECIFIED = 0;
+    ACTION_START       = 1; 
+    ACTION_CANCEL      = 2;
+  }
+  string payment_id = 1;
+  Action action     = 2;
+}
+
+message PaymentEvent {
+  string        payment_id = 1;
+  PaymentStatus status     = 2;
+  string        message    = 3;
+}

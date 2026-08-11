@@ -1,0 +1,21 @@
+# Binaries
+*.exe
+/server
+main
+bin/
+
+# Build artifacts
+/frontend/build
+/frontend/node_modules
+node_modules/
+/frontend
+# Environment
+.env
+*.env
+
+# IDE
+.cursor/
+.vscode/
+
+# Go
+vendor/

@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grpc-tasks</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg: #0d0d10;
+        --surface: #16161a;
+        --border: #26262e;
+        --accent: #7c6aff;
+        --accent-glow: rgba(124, 106, 255, 0.15);
+        --text: #e8e6f0;
+        --muted: #5c596e;
+        --green: #3ddc84;
+        --red: #ff5f6d;
+        --mono: "JetBrains Mono", monospace;
+        --sans: "Syne", sans-serif;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 14px;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #root {
+        width: 100%;
+      }
+
+      .auth-wrap {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 2rem;
+        animation: fadein 0.3s ease;
+      }
+      @keyframes fadein {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      .logo {
+        font-family: var(--sans);
+        font-size: 1.8rem;
+        letter-spacing: -0.03em;
+        margin-bottom: 2rem;
+      }
+      .logo em {
+        color: var(--accent);
+        font-style: normal;
+      }
+
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 1.5rem;
+      }
+      .tab-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: var(--mono);
+        font-size: 13px;
+        color: var(--muted);
+        padding: 0.4rem 0.9rem;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+      }
+      .tab-btn.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+
+      .field {
+        margin-bottom: 0.9rem;
+      }
+      .field label {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        margin-bottom: 0.3rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .field input {
+        width: 100%;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 14px;
+        padding: 0.55rem 0.75rem;
+        outline: none;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      .field input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+      }
+
+      .btn {
+        width: 100%;
+        margin-top: 0.5rem;
+        background: var(--accent);
+        border: none;
+        border-radius: 6px;
+        color: #fff;
+        font-family: var(--mono);
+        font-size: 14px;
+        font-weight: 500;
+        padding: 0.65rem;
+        cursor: pointer;
+        transition:
+          opacity 0.15s,
+          transform 0.1s;
+      }
+      .btn:hover {
+        opacity: 0.88;
+      }
+      .btn:active {
+        transform: scale(0.98);
+      }
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .btn-biometric {
+        width: 100%;
+        margin-top: 0.6rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 14px;
+        padding: 0.65rem;
+        cursor: pointer;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+      .btn-biometric:hover {
+        border-color: var(--accent);
+        background: var(--accent-glow);
+      }
+      .btn-biometric:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin: 1rem 0 0.5rem;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      .err {
+        color: var(--red);
+        font-size: 12px;
+        margin-top: 0.6rem;
+      }
+      .ok {
+        color: var(--green);
+        font-size: 12px;
+        margin-top: 0.6rem;
+      }
+
+      /* TASKS */
+      .app-wrap {
+        max-width: 620px;
+        margin: 0 auto;
+        padding: 2rem;
+        animation: fadein 0.3s ease;
+      }
+      .app-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.8rem;
+      }
+      .app-header .logo {
+        margin-bottom: 0;
+        font-size: 1.4rem;
+      }
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .ws-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--muted);
+        transition: background 0.3s;
+      }
+      .ws-dot.connected {
+        background: var(--green);
+        box-shadow: 0 0 6px var(--green);
+      }
+      .ws-label {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .logout-btn {
+        background: none;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 0.3rem 0.6rem;
+        border-radius: 4px;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+      }
+      .logout-btn:hover {
+        color: var(--red);
+        border-color: var(--red);
+      }
+
+      .create-form {
+        display: flex;
+        gap: 0.6rem;
+        margin-bottom: 1.5rem;
+      }
+      .create-form input {
+        flex: 1;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 14px;
+        padding: 0.55rem 0.75rem;
+        outline: none;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      .create-form input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+      }
+      .create-form .btn {
+        width: auto;
+        margin: 0;
+        padding: 0.55rem 1.1rem;
+      }
+
+      .section-label {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.75rem;
+      }
+      .task-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .task-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        animation: fadein 0.2s ease;
+        transition: border-color 0.15s;
+      }
+      .task-item:hover {
+        border-color: #363640;
+      }
+      .task-item.new-flash {
+        animation: flash 0.6s ease forwards;
+      }
+      @keyframes flash {
+        0% {
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        100% {
+          border-color: var(--border);
+          box-shadow: none;
+        }
+      }
+
+      .task-id {
+        color: var(--muted);
+        font-size: 11px;
+        flex-shrink: 0;
+        padding-top: 2px;
+      }
+      .task-body {
+        flex: 1;
+      }
+      .task-title {
+        color: var(--text);
+        font-size: 14px;
+      }
+      .task-meta {
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      .empty {
+        color: var(--muted);
+        font-size: 13px;
+        padding: 1.5rem 0;
+        text-align: center;
+      }
+
+      .live-feed {
+        margin-top: 1.5rem;
+        border-top: 1px solid var(--border);
+        padding-top: 1rem;
+      }
+      .feed-item {
+        font-size: 12px;
+        color: var(--muted);
+        padding: 0.25rem 0;
+        animation: fadein 0.2s ease;
+      }
+      .feed-item .feed-accent {
+        color: var(--accent);
+      }
+      .feed-item .feed-time {
+        color: #3a3848;
+        margin-left: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+      const API = window.location.origin;
+
+      // ── utils ─────────────────────────────────────────────────────────────────
+
+      async function apiFetch(path, opts = {}, token) {
+        const headers = {
+          "Content-Type": "application/json",
+          ...(opts.headers || {}),
+        };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch(API + path, { ...opts, headers });
+        const text = await res.text();
+        if (!res.ok) throw new Error(text || res.statusText);
+        return text ? JSON.parse(text) : {};
+      }
+
+      // ArrayBuffer → base64url (нужно для WebAuthn)
+      function bufToBase64url(buf) {
+        const bytes = new Uint8Array(buf);
+        let str = "";
+        for (const b of bytes) str += String.fromCharCode(b);
+        return btoa(str)
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=/g, "");
+      }
+
+      // base64url → ArrayBuffer (нужно для WebAuthn)
+      function base64urlToBuf(b64) {
+        const base64 = b64.replace(/-/g, "+").replace(/_/g, "/");
+        const str = atob(base64);
+        const buf = new ArrayBuffer(str.length);
+        const bytes = new Uint8Array(buf);
+        for (let i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i);
+        return buf;
+      }
+
+      // конвертирует options от сервера — challenge и id нужно перевести в ArrayBuffer
+      function prepareCreationOptions(opts) {
+        opts.publicKey.challenge = base64urlToBuf(opts.publicKey.challenge);
+        opts.publicKey.user.id = base64urlToBuf(opts.publicKey.user.id);
+        if (opts.publicKey.excludeCredentials) {
+          opts.publicKey.excludeCredentials =
+            opts.publicKey.excludeCredentials.map((c) => ({
+              ...c,
+              id: base64urlToBuf(c.id),
+            }));
+        }
+        return opts;
+      }
+
+      function prepareAssertionOptions(opts) {
+        opts.publicKey.challenge = base64urlToBuf(opts.publicKey.challenge);
+        if (opts.publicKey.allowCredentials) {
+          opts.publicKey.allowCredentials = opts.publicKey.allowCredentials.map(
+            (c) => ({
+              ...c,
+              id: base64urlToBuf(c.id),
+            }),
+          );
+        }
+        return opts;
+      }
+
+      // сериализует credential для отправки на сервер
+      function serializeCredential(cred) {
+        return {
+          id: cred.id,
+          rawId: bufToBase64url(cred.rawId),
+          type: cred.type,
+          response: {
+            attestationObject: bufToBase64url(cred.response.attestationObject),
+            clientDataJSON: bufToBase64url(cred.response.clientDataJSON),
+          },
+        };
+      }
+
+      function serializeAssertion(cred) {
+        return {
+          id: cred.id,
+          rawId: bufToBase64url(cred.rawId),
+          type: cred.type,
+          response: {
+            authenticatorData: bufToBase64url(cred.response.authenticatorData),
+            clientDataJSON: bufToBase64url(cred.response.clientDataJSON),
+            signature: bufToBase64url(cred.response.signature),
+            userHandle: cred.response.userHandle
+              ? bufToBase64url(cred.response.userHandle)
+              : null,
+          },
+        };
+      }
+
+      function shortId(id) {
+        return id ? id.slice(0, 8) : "";
+      }
+      function nowTime() {
+        return new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+      }
+
+      const webAuthnSupported = !!window.PublicKeyCredential;
+
+      // ── AuthScreen ─────────────────────────────────────────────────────────────
+
+      function AuthScreen({ onLogin }) {
+        const [tab, setTab] = useState("login");
+        const [username, setUsername] = useState("");
+        const [password, setPassword] = useState("");
+        const [loading, setLoading] = useState(false);
+        const [err, setErr] = useState("");
+        const [ok, setOk] = useState("");
+
+        function reset() {
+          setErr("");
+          setOk("");
+        }
+
+        async function submit(e) {
+          e.preventDefault();
+          reset();
+          setLoading(true);
+          try {
+            if (tab === "register") {
+              await apiFetch("/register", {
+                method: "POST",
+                body: JSON.stringify({ username, password }),
+              });
+              setOk("registered — you can now login");
+              setTab("login");
+              return;
+            }
+            const { token } = await apiFetch("/login", {
+              method: "POST",
+              body: JSON.stringify({ username, password }),
+            });
+            onLogin(token, username);
+          } catch (e) {
+            setErr(e.message);
+          } finally {
+            setLoading(false);
+          }
+        }
+
+        async function registerTouchId() {
+          if (!username) {
+            setErr("enter username first");
+            return;
+          }
+          reset();
+          setLoading(true);
+          try {
+            // 1. получаем options от сервера
+            const opts = await apiFetch("/webauthn/register/begin", {
+              method: "POST",
+              body: JSON.stringify({ username }),
+            });
+
+            // 2. просим Touch ID создать ключ
+            const cred = await navigator.credentials.create(
+              prepareCreationOptions(opts),
+            );
+
+            // 3. отправляем публичный ключ на сервер
+            await fetch(
+              `${API}/webauthn/register/finish?username=${encodeURIComponent(username)}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(serializeCredential(cred)),
+              },
+            );
+
+            setOk("Touch ID registered — you can now use it to login");
+          } catch (e) {
+            setErr(e.message || "Touch ID registration failed");
+          } finally {
+            setLoading(false);
+          }
+        }
+
+        async function loginTouchId() {
+          reset();
+          setLoading(true);
+          try {
+            const opts = await apiFetch("/webauthn/login/begin", {
+              method: "POST",
+              body: "{}",
+            });
+            const assertion = await navigator.credentials.get(
+              prepareAssertionOptions(opts),
+            );
+            const res = await fetch(`${API}/webauthn/login/finish`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(serializeAssertion(assertion)),
+            });
+            if (!res.ok) throw new Error(await res.text());
+            const { token, username } = await res.json();
+            onLogin(token, username);
+          } catch (e) {
+            setErr(e.message || "Touch ID login failed");
+          } finally {
+            setLoading(false);
+          }
+        }
+
+        return (
+          <div className="auth-wrap">
+            <div className="logo">
+              grpc<em>tasks</em>
+            </div>
+            <div className="tabs">
+              <button
+                className={`tab-btn ${tab === "login" ? "active" : ""}`}
+                onClick={() => {
+                  setTab("login");
+                  reset();
+                }}
+              >
+                login
+              </button>
+              <button
+                className={`tab-btn ${tab === "register" ? "active" : ""}`}
+                onClick={() => {
+                  setTab("register");
+                  reset();
+                }}
+              >
+                register
+              </button>
+            </div>
+            <form onSubmit={submit}>
+              <div className="field">
+                <label>username</label>
+                <input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="field">
+                <label>password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              {err && <div className="err">{err}</div>}
+              {ok && <div className="ok">{ok}</div>}
+              <button className="btn" type="submit" disabled={loading}>
+                {loading ? "..." : tab}
+              </button>
+            </form>
+
+            {webAuthnSupported && (
+              <>
+                <div className="divider">or</div>
+                {tab === "login" ? (
+                  <button
+                    className="btn-biometric"
+                    onClick={loginTouchId}
+                    disabled={loading}
+                  >
+                    <span>⌥</span> sign in with Touch ID
+                  </button>
+                ) : (
+                  <button
+                    className="btn-biometric"
+                    onClick={registerTouchId}
+                    disabled={loading}
+                  >
+                    <span>⌥</span> register Touch ID
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        );
+      }
+
+      // ── TaskScreen ─────────────────────────────────────────────────────────────
+
+      function TaskScreen({ token, username, onLogout }) {
+        const [tasks, setTasks] = useState([]);
+        const [title, setTitle] = useState("");
+        const [wsReady, setWsReady] = useState(false);
+        const [feed, setFeed] = useState([]);
+        const [newIds, setNewIds] = useState(new Set());
+
+        useEffect(() => {
+          apiFetch("/tasks", {}, token)
+            .then((data) => setTasks(data.tasks || []))
+            .catch(console.error);
+        }, []);
+
+        useEffect(() => {
+          const protocol =
+            window.location.protocol === "https:" ? "wss:" : "ws:";
+          const ws = new WebSocket(
+            `${protocol}//${window.location.host}/ws?token=${token}`,
+          );
+          ws.onopen = () => setWsReady(true);
+          ws.onclose = () => setWsReady(false);
+          ws.onerror = () => setWsReady(false);
+          ws.onmessage = (e) => {
+            try {
+              const event = JSON.parse(e.data);
+              const task = event.task;
+              if (!task) return;
+              if (event.event_type === 1) {
+                setTasks((prev) =>
+                  prev.find((t) => t.id === task.id) ? prev : [task, ...prev],
+                );
+                setNewIds((prev) => new Set([...prev, task.id]));
+                setTimeout(
+                  () =>
+                    setNewIds((prev) => {
+                      const s = new Set(prev);
+                      s.delete(task.id);
+                      return s;
+                    }),
+                  700,
+                );
+                setFeed((prev) => [
+                  { text: `"${task.title}"`, time: nowTime() },
+                  ...prev.slice(0, 9),
+                ]);
+              }
+            } catch {}
+          };
+          return () => ws.close();
+        }, [token]);
+
+        async function createTask(e) {
+          e.preventDefault();
+          if (!title.trim()) return;
+          try {
+            await apiFetch(
+              "/tasks",
+              { method: "POST", body: JSON.stringify({ title: title.trim() }) },
+              token,
+            );
+            setTitle("");
+          } catch (e) {
+            console.error(e);
+          }
+        }
+
+        return (
+          <div className="app-wrap">
+            <div className="app-header">
+              <div className="logo">
+                grpc<em>tasks</em>
+              </div>
+              <div className="header-right">
+                <div className={`ws-dot ${wsReady ? "connected" : ""}`} />
+                <span className="ws-label">{wsReady ? "live" : "offline"}</span>
+                <span className="ws-label">@{username}</span>
+                <button className="logout-btn" onClick={onLogout}>
+                  logout
+                </button>
+              </div>
+            </div>
+
+            <form className="create-form" onSubmit={createTask}>
+              <input
+                placeholder="new task..."
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+              <button className="btn" type="submit">
+                add
+              </button>
+            </form>
+
+            <div className="section-label">
+              {tasks.length} task{tasks.length !== 1 ? "s" : ""}
+            </div>
+            <div className="task-list">
+              {tasks.length === 0 && <div className="empty">no tasks yet</div>}
+              {tasks.map((t) => (
+                <div
+                  key={t.id}
+                  className={`task-item ${newIds.has(t.id) ? "new-flash" : ""}`}
+                >
+                  <span className="task-id">#{shortId(t.id)}</span>
+                  <div className="task-body">
+                    <div className="task-title">{t.title}</div>
+                    {t.description && (
+                      <div className="task-meta">{t.description}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {feed.length > 0 && (
+              <div className="live-feed">
+                <div className="section-label">live events</div>
+                {feed.map((f, i) => (
+                  <div key={i} className="feed-item">
+                    <span className="feed-accent">→</span> new task{" "}
+                    <span className="feed-accent">{f.text}</span>
+                    <span className="feed-time">{f.time}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // ── App ───────────────────────────────────────────────────────────────────
+
+      function App() {
+        const [token, setToken] = useState(
+          () => localStorage.getItem("token") || "",
+        );
+        const [username, setUsername] = useState(
+          () => localStorage.getItem("username") || "",
+        );
+
+        function handleLogin(t, u) {
+          localStorage.setItem("token", t);
+          localStorage.setItem("username", u);
+          setToken(t);
+          setUsername(u);
+        }
+
+        function handleLogout() {
+          localStorage.removeItem("token");
+          localStorage.removeItem("username");
+          setToken("");
+          setUsername("");
+        }
+
+        if (!token) return <AuthScreen onLogin={handleLogin} />;
+        return (
+          <TaskScreen
+            token={token}
+            username={username}
+            onLogout={handleLogout}
+          />
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
